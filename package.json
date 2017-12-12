@@ -1,7 +1,7 @@
 {
-  "name": "@base63/content",
+  "name": "@base63/base63fe",
   "version": "0.0.0",
-  "description": "The content service.",
+  "description": "The frontend to the base63.com application - editor, landing pages, about etc",
   "author": "Base63 team",
   "scripts": {
     "build": "tsc",
@@ -13,10 +13,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/base63/content.git"
+    "url": "git+https://github.com/base63/base63fe.git"
   },
   "license": "MIT",
-  "homepage": "https://github.com/base63/content#readme",
+  "homepage": "https://github.com/base63/base63fe#readme",
   "filesPack": {
     "out": "e:.",
     "migrations": "c:migrations",
