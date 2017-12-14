@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        {{{ PAGE_TITLE_HTML }}}
+
+        <meta name="keywords" content="blog, publishing, tech, it, developer, programmer, programming">
+        <meta name="author" content="Base63 team">
+
+        {{{ PAGE_META_HTML }}}
+
+        {{{ PAGE_LINK_HTML }}}
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <link rel="shortcut icon" href="/real/client/favicon.ico" type="image/x-icon">
+        <link rel="icon" href="/real/client/favicon.ico" type="image/x-icon">
+
+        <link rel="stylesheet" href="/real/client/client.css" media="screen">
+        <link rel="author" href="/humans.txt" />
+    </head>
+
+    <body>
+        <div id="client">{{{ APP_HTML }}}</div>
+
+        <script>
+         window.__BASE63_CLIENT_CONFIG = {{{ CLIENT_CONFIG }}};
+         window.__BASE63_CLIENT_INITIAL_STATE = {{{ CLIENT_INITIAL_STATE }}};
+        </script>
+        <script>{{{ WEBPACK_MANIFEST_JS }}}</script>
+        <script src="/real/client/vendor.js"></script>
+        <script src="/real/client/client.js"></script>
+    </body>
+</html>

@@ -9,16 +9,15 @@
         "noUnusedParameters": true,
         "strictNullChecks": true,
         "sourceMap": true,
-        "declaration": true,
-	      "experimentalDecorators": true,
-	      "jsx": "react",
-        "outDir": "./out"
+        "experimentalDecorators": true,
+        "jsx": "react"
     },
     "include": [
-        "./src/server/**/*",
+        "./src/client/**/*",
         "./src/shared/**/*"
     ],
     "exclude": [
-	      "./node_modules"
+        "./node_modules",
+        "./src/shared/config.ts"
     ]
 }

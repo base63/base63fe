@@ -29,12 +29,14 @@ COPY . /base63
 # Setup the runtime environment for the application.
 
 ENV ENV LOCAL
+ENV CONTEXT SERVER
 ENV ADDRESS 0.0.0.0
 ENV PORT 10000
 ENV ORIGIN http://localhost:10003
 ENV LOGGLY_TOKEN null
 ENV LOGGLY_SUBDOMAIN null
-ENV ROLLBAR_TOKEN null
+ENV ROLLBAR_SERVER_TOKEN null
+ENV ROLLBAR_CLIENT_TOKEN null
 
 RUN chown -R base63:base63 /base63/build
 RUN chown -R base63:base63 /base63/out
