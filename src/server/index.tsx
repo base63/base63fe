@@ -1,4 +1,5 @@
 import * as compression from 'compression'
+import { createNamespace } from 'continuation-local-storage'
 import * as express from 'express'
 import * as HttpStatus from 'http-status-codes'
 import * as Mustache from 'mustache'
@@ -15,12 +16,12 @@ import { RequestWithIdentity, Session, SessionState } from '@base63/identity-sdk
 import {
     newCommonServerMiddleware,
     newLocalCommonServerMiddleware,
+    newNamespaceMiddleware,
     Request
 } from '@base63/common-server-js'
 
 import { CompiledBundles, Bundles, WebpackDevBundles } from './bundles'
-import * as config from './config'
-import { ONE } from '../shared/one'
+import * as config from '../shared/config'
 import { ClientConfig, ClientInitialState } from '../shared/client-data'
 import { inferLanguage } from '../shared/utils'
 
@@ -38,9 +39,12 @@ async function main() {
         }))
         : new CompiledBundles();
 
+    const namespace = createNamespace(config.CLS_NAMESPACE_NAME);
+
     const app = express();
 
     app.disable('x-powered-by');
+    app.use(newNamespaceMiddleware(namespace))
     if (isLocal(config.ENV)) {
         app.use(newLocalCommonServerMiddleware(config.NAME, config.ENV, false));
     } else {
@@ -65,15 +69,15 @@ async function main() {
             language: language
         };
 
-        // namespace.set('SESSION', session);
-        // namespace.set('LANG', language);
+        namespace.set('SESSION', session);
+        namespace.set('LANG', language);
 
         const appHtml = ReactDOMServer.renderToString(
             <p>
                 <Helmet>
                     <title>A title</title>
                 </Helmet>
-                This is blog {ONE}
+                This is blog {initialState.text}
             </p>
         );
 
@@ -148,7 +152,7 @@ async function main() {
     app.use('/', appRouter);
 
     app.listen(config.PORT, config.ADDRESS, () => {
-        console.log(`Started ${config.NAME} ${ONE} ... ${config.ADDRESS}:${config.PORT}`);
+        console.log(`Started ${config.NAME} ... ${config.ADDRESS}:${config.PORT}`);
     });
 }
 

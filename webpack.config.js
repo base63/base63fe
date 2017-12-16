@@ -104,7 +104,7 @@ module.exports = {
         // to be the case and we had the same config. However this turned out to be problematic
         // with newer versions of typescript.
         new webpack.NormalModuleReplacementPlugin(/^[.][/]config$/, function(result) {
-            result.request = '../client/config1';
+            result.request = '../client/config';
         }),
         new CopyPlugin([
             {from: './src/shared/static/index.html'},
