@@ -7,6 +7,8 @@ import { MarshalFrom } from 'raynor'
 import * as React from 'react'
 import * as ReactDOMServer from 'react-dom/server'
 import { Helmet } from 'react-helmet'
+import { Provider } from 'react-redux'
+import { StaticRouter } from 'react-router-dom'
 import * as webpack from 'webpack'
 import * as theWebpackDevMiddleware from 'webpack-dev-middleware'
 import * as serializeJavascript from 'serialize-javascript'
@@ -21,8 +23,10 @@ import {
 } from '@base63/common-server-js'
 
 import { CompiledBundles, Bundles, WebpackDevBundles } from './bundles'
+import { App } from '../shared/app'
 import * as config from '../shared/config'
 import { ClientConfig, ClientInitialState } from '../shared/client-data'
+import { createStoreFromInitialState, reducers } from '../shared/store'
 import { inferLanguage } from '../shared/utils'
 
 
@@ -57,8 +61,9 @@ async function main() {
     }
     app.use(compression({ threshold: 0 }));
 
-    function serverSideRender(session: Session, initialState: ClientInitialState/*, ssrRouterState: RouterState*/): string {
+    function serverSideRender(url: string, session: Session, clientInitialState: ClientInitialState): [string, number | null] {
         const language = inferLanguage(session);
+        const store = createStoreFromInitialState(reducers, clientInitialState);
 
         const clientConfig = {
             env: config.ENV,
@@ -72,26 +77,28 @@ async function main() {
         namespace.set('SESSION', session);
         namespace.set('LANG', language);
 
+        const staticContext: any = {};
         const appHtml = ReactDOMServer.renderToString(
-            <p>
-                <Helmet>
-                    <title>A title</title>
-                </Helmet>
-                This is blog {initialState.text}
-            </p>
+            <Provider store={store}>
+                <StaticRouter location={url} context={staticContext}>
+                    <App />
+                </StaticRouter>
+            </Provider>
         );
+
+        const specialStatus = staticContext.status == HttpStatus.NOT_FOUND ? HttpStatus.NOT_FOUND : null;
 
         const helmetData = Helmet.renderStatic();
 
-        return Mustache.render(bundles.getHtmlIndexTemplate(), {
+        return [Mustache.render(bundles.getHtmlIndexTemplate(), {
             PAGE_TITLE_HTML: helmetData.title,
             PAGE_META_HTML: helmetData.meta,
             PAGE_LINK_HTML: helmetData.link,
             APP_HTML: appHtml,
             CLIENT_CONFIG: serializeJavascript(clientConfigMarshaller.pack(clientConfig), { isJSON: true }),
-            CLIENT_INITIAL_STATE: serializeJavascript(clientInitialStateMarshaller.pack(initialState), { isJSON: true }),
+            CLIENT_INITIAL_STATE: serializeJavascript(clientInitialStateMarshaller.pack(clientInitialState), { isJSON: true }),
             WEBPACK_MANIFEST_JS: bundles.getManifestJs(),
-        });
+        }), specialStatus];
     }
 
     // Install auth-flow stuff
@@ -101,32 +108,32 @@ async function main() {
     const siteInfoRouter = express.Router();
 
     siteInfoRouter.get('/robots.txt', (_req: Request, res: express.Response) => {
+        res.status(HttpStatus.OK);
         res.type('.txt');
         res.write(Mustache.render(bundles.getRobotsTxt(), { HOME_URI: config.ORIGIN }));
-        res.status(HttpStatus.OK);
         res.end();
     });
 
     siteInfoRouter.get('/humans.txt', (_req: Request, res: express.Response) => {
+        res.status(HttpStatus.OK);
         res.type('.txt');
         res.write(bundles.getHumansTxt());
-        res.status(HttpStatus.OK);
         res.end();
     });
 
     siteInfoRouter.get('/sitemap.xml', (_req: Request, res: express.Response) => {
+        res.status(HttpStatus.OK);
         res.type('application/xml; charset=utf-8');
         res.write(Mustache.render(bundles.getSitemapXml(), {
             HOME_URI: config.ORIGIN,
             HOME_LAST_MOD: new Date().toISOString()
         }));
-        res.status(HttpStatus.OK);
         res.end();
     });
 
     const appRouter = express.Router();
 
-    appRouter.get('/', (_req: RequestWithIdentity, res: express.Response) => {
+    appRouter.get('*', (req: RequestWithIdentity, res: express.Response) => {
         const initialState: ClientInitialState = {
             text: 'hello world'
         };
@@ -138,13 +145,15 @@ async function main() {
         theSession.timeCreated = new Date(Date.now());
         theSession.timeLastUpdated = theSession.timeCreated;
 
-        res.type('html');
-        res.write(serverSideRender(
+        const [content, specialStatus] = serverSideRender(
+            req.url,
             theSession, // TODO: use req.session here
             initialState
-            /* req.ssrRouterState */
-        ));
-        res.status(HttpStatus.OK);
+        );
+
+        res.status(specialStatus != null ? specialStatus : HttpStatus.OK);
+        res.type('html');
+        res.write(content);
         res.end();
     });
 

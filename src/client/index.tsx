@@ -1,14 +1,16 @@
 import { MarshalFrom } from 'raynor'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { Helmet } from 'react-helmet'
+import { Provider } from 'react-redux'
+import { BrowserRouter } from 'react-router-dom'
 import * as Rollbar from 'rollbar'
 
 import { isOnServer, envToString } from '@base63/common-js'
 
 import * as config from './config'
+import { App } from '../shared/app'
 import { ClientInitialState } from '../shared/client-data'
-
+import { createStoreFromInitialState, reducers } from '../shared/store'
 
 const clientInitialStateMarshaller = new (MarshalFrom(ClientInitialState))();
 
@@ -32,19 +34,13 @@ config.setServices(rollbar);
 const clientInitialState = clientInitialStateMarshaller.extract((window as any).__BASE63_CLIENT_INITIAL_STATE);
 delete (window as any).__BASE63_INITIAL_STATE;
 
-const initialState = {} as any;
-
-if (clientInitialState.text != null) {
-    initialState.text = clientInitialState.text;
-}
-
+const store = createStoreFromInitialState(reducers, clientInitialState);
 
 ReactDOM.render(
-    <p>
-        <Helmet>
-            <title>A title</title>
-        </Helmet>
-        This is blog {initialState.text}
-    </p>,
+    <Provider store={store}>
+        <BrowserRouter>
+            <App />
+        </BrowserRouter>
+    </Provider>,
     document.getElementById('app')
 );
