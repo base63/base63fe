@@ -94,7 +94,6 @@ module.exports = {
     },
     plugins: [
         new webpack.DefinePlugin({
-            'process.env.CONTEXT': '"CLIENT"',
             'process.env.NODE_ENV': process.env.ENV === 'LOCAL' ? '"development"' : '"production"'
         }),
         // As we add more languages, we'll select more locales here.

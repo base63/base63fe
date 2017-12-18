@@ -68,7 +68,6 @@ async function main() {
         const clientConfig = {
             env: config.ENV,
             origin: config.ORIGIN,
-            context: config.CONTEXT,
             rollbarClientToken: config.ROLLBAR_CLIENT_TOKEN,
             session: session,
             language: language
