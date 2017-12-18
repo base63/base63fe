@@ -1,6 +1,5 @@
 import { getNamespace } from 'continuation-local-storage'
 import { config } from 'dotenv'
-import * as Rollbar from 'rollbar'
 
 import { Context, Env, parseContext, parseEnv, isOnServer } from '@base63/common-js'
 import { getFromEnv } from '@base63/common-server-js'
@@ -23,8 +22,6 @@ export let ROLLBAR_SERVER_TOKEN: string | null;
 export let ROLLBAR_CLIENT_TOKEN: string | null;
 export let SESSION: () => Session;
 export let LANG: () => string;
-export let ROLLBAR_CLIENT: () => Rollbar;
-export let setServices: (rollbar: Rollbar) => void;
 
 SESSION = () => {
     const namespace = getNamespace(CLS_NAMESPACE_NAME);
@@ -36,15 +33,6 @@ LANG = () => {
     const namespace = getNamespace(CLS_NAMESPACE_NAME);
     const lang = namespace.get('LANG');
     return lang;
-};
-
-ROLLBAR_CLIENT = () => {
-    throw new Error('Should not be invoked');
-}
-
-
-setServices = (_rollbarClient: Rollbar) => {
-    throw new Error('Should not be invoked');
 };
 
 if (isOnServer(ENV)) {

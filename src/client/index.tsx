@@ -10,6 +10,7 @@ import { isOnServer, envToString } from '@base63/common-js'
 import * as config from './config'
 import { App } from '../shared/app'
 import { ClientInitialState } from '../shared/client-data'
+import * as services from '../shared/services'
 import { createStoreFromInitialState, reducers } from '../shared/store'
 
 const clientInitialStateMarshaller = new (MarshalFrom(ClientInitialState))();
@@ -29,7 +30,7 @@ const rollbar = new Rollbar({
     }
 });
 
-config.setServices(rollbar);
+services.setServices(rollbar);
 
 const clientInitialState = clientInitialStateMarshaller.extract((window as any).__BASE63_CLIENT_INITIAL_STATE);
 delete (window as any).__BASE63_INITIAL_STATE;
