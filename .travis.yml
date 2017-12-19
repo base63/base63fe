@@ -16,7 +16,6 @@ addons:
 env:
   global:
   - ENV=TEST
-  - CONTEXT=SERVER
   - ADDRESS=0.0.0.0
   - PORT=10000
   - ORIGIN=null
