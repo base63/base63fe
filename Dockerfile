@@ -32,6 +32,7 @@ ENV ENV LOCAL
 ENV ADDRESS 0.0.0.0
 ENV PORT 10000
 ENV ORIGIN http://localhost:10003
+ENV IDENTITY_SERVICE_HOST base63-identity:10000
 
 RUN chown -R base63:base63 /base63/build
 RUN chown -R base63:base63 /base63/out

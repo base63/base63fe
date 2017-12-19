@@ -11,7 +11,6 @@ const clientConfig = clientConfigMarshaller.extract((window as any).__BASE63_CLI
 delete (window as any).__BASE63_CLIENT_CONFIG;
 
 
-export const CLS_NAMESPACE_NAME: string = 'base63.request';
 export const NAME: string = 'base63fe';
 export const ENV: Env = clientConfig.env;
 export const ORIGIN: string = clientConfig.origin;

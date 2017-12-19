@@ -37,7 +37,7 @@ delete (window as any).__BASE63_INITIAL_STATE;
 
 const store = createStoreFromInitialState(reducers, clientInitialState);
 
-ReactDOM.render(
+ReactDOM.hydrate(
     <Provider store={store}>
         <BrowserRouter>
             <App />

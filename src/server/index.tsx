@@ -14,12 +14,26 @@ import * as theWebpackDevMiddleware from 'webpack-dev-middleware'
 import * as serializeJavascript from 'serialize-javascript'
 
 import { isLocal } from '@base63/common-js'
-import { RequestWithIdentity, Session, SessionState } from '@base63/identity-sdk-js'
 import {
+    IdentityClient,
+    newIdentityClient,
+    RequestWithIdentity,
+    Session
+} from '@base63/identity-sdk-js'
+import {
+    newAuth0AuthFlowRouter,
+    newApiGatewayRouter,
+    newSessionMiddleware,
+    SessionLevel,
+    SessionInfoSource
+} from '@base63/identity-sdk-js/server'
+import {
+    InternalWebFetcher,
     newCommonServerMiddleware,
     newLocalCommonServerMiddleware,
     newNamespaceMiddleware,
-    Request
+    Request,
+    WebFetcher
 } from '@base63/common-server-js'
 
 import { CompiledBundles, Bundles, WebpackDevBundles } from './bundles'
@@ -31,9 +45,16 @@ import { inferLanguage } from '../shared/utils'
 
 
 async function main() {
+    // Global setup, but hidden inside main()
+    // ********************
+
     const webpackConfig = require('../../webpack.config.js');
+
     const clientConfigMarshaller = new (MarshalFrom(ClientConfig))();
     const clientInitialStateMarshaller = new (MarshalFrom(ClientInitialState))();
+
+    const internalWebFetcher: WebFetcher = new InternalWebFetcher();
+    const identityClient: IdentityClient = newIdentityClient(config.ENV, config.ORIGIN, config.IDENTITY_SERVICE_HOST, internalWebFetcher);
 
     const bundles: Bundles = isLocal(config.ENV)
         ? new WebpackDevBundles(theWebpackDevMiddleware(webpack(webpackConfig), {
@@ -44,22 +65,6 @@ async function main() {
         : new CompiledBundles();
 
     const namespace = createNamespace(config.CLS_NAMESPACE_NAME);
-
-    const app = express();
-
-    app.disable('x-powered-by');
-    app.use(newNamespaceMiddleware(namespace))
-    if (isLocal(config.ENV)) {
-        app.use(newLocalCommonServerMiddleware(config.NAME, config.ENV, false));
-    } else {
-        app.use(newCommonServerMiddleware(
-            config.NAME,
-            config.ENV,
-            config.LOGGLY_TOKEN as string,
-            config.LOGGLY_SUBDOMAIN as string,
-            config.ROLLBAR_SERVER_TOKEN as string));
-    }
-    app.use(compression({ threshold: 0 }));
 
     function serverSideRender(url: string, session: Session, clientInitialState: ClientInitialState): [string, number | null] {
         const language = inferLanguage(session);
@@ -100,9 +105,43 @@ async function main() {
         }), specialStatus];
     }
 
-    // Install auth-flow stuff
+    const app = express();
+
+    // Setup global properties and behaviours of the application
+    // ********************
+
+    app.disable('x-powered-by');
+    app.use(newNamespaceMiddleware(namespace))
+    if (isLocal(config.ENV)) {
+        app.use(newLocalCommonServerMiddleware(config.NAME, config.ENV, false));
+    } else {
+        app.use(newCommonServerMiddleware(
+            config.NAME,
+            config.ENV,
+            config.LOGGLY_TOKEN as string,
+            config.LOGGLY_SUBDOMAIN as string,
+            config.ROLLBAR_SERVER_TOKEN as string));
+    }
+    app.use(compression({ threshold: 0 }));
+
+    // Setup the /real portion of the path-space. Here are things which don't belong to the client-side
+    // interaction, but rather to the server-side one, callbacks from other services etc.
+    // ********************
+
+    // Setup the auth0 authentication flow. Has a complex dance wrt sessions.
+    app.use('/real/auth0-auth-flow', newAuth0AuthFlowRouter(
+        config.ENV, config.ALLOWED_PATHS, config.AUTH0_CONFIG, internalWebFetcher, identityClient));
+
+    // An API gateway for the client side code. Needs session to exist in the request.
+    app.use('/real/api-gateway', newApiGatewayRouter(internalWebFetcher));
+
+    // Static serving of the client side code assets (index.html, vendor.js etc). No session. Derived
+    // from the bundles.
     app.use('/real/client', bundles.getOtherBundlesRouter());
-    // Install api-gateway stuff
+
+    // Setup serving of a bunch of files for interacting with the web at large, such as robots.txt,
+    // sitemaps etc. These are derived from the bundles, with some extra data baked in. No session.
+    // ********************
 
     const siteInfoRouter = express.Router();
 
@@ -130,23 +169,26 @@ async function main() {
         res.end();
     });
 
+    app.use('/', siteInfoRouter);
+
+    // Setup serving for all all client application level routes. Any path a user enters, which
+    // doesn't match the ones from above (so /real ones or standard web ones) will be handled
+    // by serving the "client application". This translated to doing a server-side render of the
+    // application and serving that embedded into {@link src/shared/static/index.html}, which
+    // will reference /real/client/client.js and other static resources in order to boot it up.
+    // ********************
+
     const appRouter = express.Router();
 
+    appRouter.use(newSessionMiddleware(SessionLevel.None, SessionInfoSource.Cookie, config.ENV, identityClient));
     appRouter.get('*', (req: RequestWithIdentity, res: express.Response) => {
         const initialState: ClientInitialState = {
             text: 'hello world'
         };
 
-        const theSession = new Session();
-        theSession.state = SessionState.Active;
-        theSession.xsrfToken = ('0' as any).repeat(64);
-        theSession.agreedToCookiePolicy = false;
-        theSession.timeCreated = new Date(Date.now());
-        theSession.timeLastUpdated = theSession.timeCreated;
-
         const [content, specialStatus] = serverSideRender(
             req.url,
-            theSession, // TODO: use req.session here
+            req.session, // TODO: use req.session here
             initialState
         );
 
@@ -156,12 +198,15 @@ async function main() {
         res.end();
     });
 
-    app.use('/', siteInfoRouter);
     app.use('/', appRouter);
+
+    // Start serving
+    // ********************
 
     app.listen(config.PORT, config.ADDRESS, () => {
         console.log(`Started ${config.NAME} ... ${config.ADDRESS}:${config.PORT}`);
     });
 }
+
 
 main();
