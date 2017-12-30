@@ -3,12 +3,10 @@ import { NavLink, Route, Switch, withRouter } from 'react-router-dom'
 import { Helmet } from 'react-helmet'
 import { connect } from 'react-redux'
 
+import { AdminPage } from './admin'
+import { HomePage } from './home'
 import { NotFound } from './not-found'
 import { FooState } from './store'
-
-
-const HomePage = () => <div>Home page</div>;
-const AdminPage = () => <div>Admin page</div>;
 
 
 export interface Props {
