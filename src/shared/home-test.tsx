@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import * as Enzyme from 'enzyme'
-import { shallow } from 'enzyme'
+import { mount } from 'enzyme'
 import * as Adapter from 'enzyme-adapter-react-16'
 import * as React from 'react'
 import 'mocha'
@@ -12,7 +12,7 @@ Enzyme.configure({adapter: new Adapter()});
 
 describe('HomePage', () => {
     it('should render', () => {
-        const wrapper = shallow(<HomePage />);
+        const wrapper = mount(<HomePage />);
         expect(wrapper.contains('Home page')).to.be.true;
     });
 });
